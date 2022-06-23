@@ -1,23 +1,21 @@
-import logo from './logo.svg';
-import './App.css';
+import logo from "./logo.svg";
+import "./App.css";
+import Signup from "./Signup";
+import Login from "./Login";
+import { useState } from "react";
+import Dashboard from "./Dashboard";
 
 function App() {
+  const info = {
+    email: "robellempajarin@gmail.com",
+    firstName: "Jose Robelle",
+  };
+  const { isAlreadyRegistered, setIsAlreadyRegistered } = useState(true);
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="App h-screen App flex justify-end items-center">
+      {isAlreadyRegistered ? <Login /> : null}
+      {/* {!isAlreadyRegistered ? <Signup /> : null} */}
+      {/* <Dashboard name={info.firstName} email={info.email} /> */}
     </div>
   );
 }
