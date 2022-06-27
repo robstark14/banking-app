@@ -9,16 +9,17 @@
 body {
   background-color: #f6f6f6;
   height: 100vh;
+  width: 100vw;
 }
 
 .input-field {
   @apply p-2 my-1 w-full rounded focus:outline-none;
 }
 .btn {
-  @apply bg-rose-700 text-white tracking-wide rounded-2xl mt-4 w-1/2 m-auto;
+  @apply hover:opacity-80 hover:cursor-pointer bg-rose-700 text-white tracking-wide rounded-2xl mt-4 w-1/2 m-auto;
 }
 .modal-form {
-  @apply bg-gray-100 rounded-lg p-6 shadow-2xl h-2/3 w-11/12 mr-16 sm:w-1/2 sm:h-2/3 md:h-fit md:w-1/4 text-left;
+  @apply bg-gray-100 rounded-lg p-6 shadow-2xl h-2/3 w-11/12 mr-32 sm:w-1/2 sm:h-2/3 md:h-fit md:w-1/4 text-left;
 }
 .warning-input {
   @apply text-red-500 py-1 px-2 mb-1 text-sm w-full;

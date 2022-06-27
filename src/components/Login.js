@@ -1,26 +1,43 @@
 import { useState } from "react";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+import { auth } from "../config/firebase_config";
+import { useNavigate } from "react-router-dom";
 
-const Login = () => {
+const Login = ({ formSwitch }) => {
+  const navigate = useNavigate();
+  const navigateSignUp = () => {
+    navigate("/signup");
+  };
   const [value, setValue] = useState({
-    firstName: "",
-    lastName: "",
     email: "",
     password: "",
-    confirmPassword: "",
   });
   const [submitted, setSubmitted] = useState(false);
   const [validSubmit, setValidSubmit] = useState(false);
+  const [error, setError] = useState(false);
+  const [showError, setShowError] = useState("");
+  const [loginSuccess, setLogInSuccess] = useState(false);
 
-  const emailInputChange = (e) => {
-    setValue({ ...value, email: e.target.value });
+  const userLogIn = async () => {
+    try {
+      const user = await signInWithEmailAndPassword(
+        auth,
+        value.email,
+        value.password
+      );
+      console.log(user);
+      setLogInSuccess(true);
+    } catch (err) {
+      setError(true);
+      setShowError(err.message);
+    }
   };
-  const passwordInputChange = (e) => {
-    setValue({ ...value, password: e.target.value });
-  };
-
   return (
     <div className="modal-form">
-      {submitted && validSubmit ? (
+      {/* {submitted && validSubmit ? (
         <p className="bg-green-300 py-1 px-2 mb-1">
           Success! Please{" "}
           <a className="text-blue-500" href="/">
@@ -28,22 +45,19 @@ const Login = () => {
           </a>{" "}
           continue
         </p>
-      ) : null}
+      ) : null} */}
       <h1 className="font-sans mb-10 text-xl font-bold ">
         Log in to your Account
       </h1>
+      {loginSuccess && <p className="bg-green-300 px-2 mb-1">Success</p>}
+      {error && <p className="bg-red-300 py-1 px-2 mb-1">{showError}</p>}
       <form
         className="flex flex-col columns-1 items-center"
         onSubmit={(e) => {
           e.preventDefault();
-          if (
-            value.firstName &&
-            value.lastName &&
-            value.email &&
-            value.password &&
-            value.confirmPassword
-          ) {
+          if (value.email && value.password) {
             setValidSubmit(true);
+            userLogIn();
             // setValue({
             //   firstName: (value.firstName = ""),
             //   lastName: (value.lastName = ""),
@@ -52,11 +66,13 @@ const Login = () => {
             //   confirmPassword: (value.confirmPassword = ""),
             // });
           }
-          setSubmitted(true);
+          // setSubmitted(true);
         }}
       >
         <input
-          onChange={emailInputChange}
+          onChange={(e) => {
+            setValue({ ...value, email: e.target.value });
+          }}
           className="input-field"
           type="email"
           name="email"
@@ -68,7 +84,9 @@ const Login = () => {
           <p className="warning-input">Please enter your email</p>
         ) : null}
         <input
-          onChange={passwordInputChange}
+          onChange={(e) => {
+            setValue({ ...value, password: e.target.value });
+          }}
           className="input-field"
           type="password"
           name="password"
@@ -85,9 +103,9 @@ const Login = () => {
         </button>
         <p className="mt-4 text-sm">
           Don't have account yet?{" "}
-          <a className="text-blue-500" href="/">
-            Create Account
-          </a>
+          <button className="text-blue-500" onClick={navigateSignUp}>
+            Sign up
+          </button>
         </p>
       </form>
     </div>

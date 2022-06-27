@@ -1,21 +1,39 @@
 import logo from "./logo.svg";
 import "./App.css";
-import Signup from "./Signup";
-import Login from "./Login";
+import Signup from "./components/Signup";
+import Login from "./components/Login";
 import { useState } from "react";
-import Dashboard from "./Dashboard";
+import Dashboard from "./components/Dashboard";
+import { Routes, Route } from "react-router-dom";
+import Deposit from "./components/Deposit";
+import NoMatch from "./components/NoMatch";
 
 function App() {
-  const info = {
-    email: "robellempajarin@gmail.com",
-    firstName: "Jose Robelle",
-  };
-  const { isAlreadyRegistered, setIsAlreadyRegistered } = useState(true);
   return (
-    <div className="App h-screen App flex justify-end items-center">
-      {isAlreadyRegistered ? <Login /> : null}
-      {/* {!isAlreadyRegistered ? <Signup /> : null} */}
-      {/* <Dashboard name={info.firstName} email={info.email} /> */}
+    <div className="App h-screen w-screen flex justify-center items-center  ">
+      {/* <div className="flex justify-end items-center bg-[url('../public/bgd-login2.png')] w-screen h-screen bg-no-repeat bg-[length:1400px_750px]"> */}
+      {/* {formSwitchComponent} */}
+      {/* </div> */}
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <div className="flex justify-end items-center bg-[url('../public/bgd-login2.png')] w-screen h-screen bg-no-repeat bg-[length:1400px_750px]">
+              <Login />
+            </div>
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <div className="flex justify-end items-center bg-[url('../public/bgd-login2.png')] w-screen h-screen bg-no-repeat bg-[length:1400px_750px]">
+              <Signup />
+            </div>
+          }
+        />
+        <Route path="/dashboard/*" element={<Dashboard />} />
+        {/* <Route path="/deposit" element={<Deposit />} /> */}
+      </Routes>
     </div>
   );
 }
