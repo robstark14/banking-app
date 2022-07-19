@@ -1,23 +1,20 @@
 import { useState, useEffect } from "react";
-import { db } from "../config/firebase_config";
+import { auth, db } from "../config/firebase_config";
 import { usersRef } from "../config/firebase_config";
 import {
   collection,
   doc,
-  // getDocs,
-  addDoc,
-  getDoc,
   setDoc,
-  //   updateDoc,
-  //   deleteDoc,
-  //   doc,
+  serverTimestamp,
+  updateDoc,
 } from "firebase/firestore";
 
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { useAuthUser } from "./context/AuthUserContextProvider";
+import { onAuthStateChanged } from "firebase/auth";
 const ExpenseForm = ({
   updateExpenseHistory,
   deductExpenseToBalance,
-  setBalance,
+  getBalance,
   balance,
 }) => {
   const [expenseValue, setExpenseValue] = useState({
@@ -26,36 +23,33 @@ const ExpenseForm = ({
     date: "",
   });
 
-  // const userRef = doc(db, "users", "");
-  const auth = getAuth();
-  const user = auth.currentUser;
-  console.log(user);
+  const { user } = useAuthUser();
   const addExpenseToDatabase = async () => {
     const expenseDoc = doc(collection(db, "users", user.uid, "expense-list"));
     const docId = expenseDoc.id;
-    console.log(docId);
-    // const document = await getDoc(
-    //   doc(db, "users", user.uid, "expense-list", docId)
-    // );
-    console.log(document);
+
     await setDoc(doc(db, "users", user.uid, "expense-list", docId), {
       description: expenseValue.description,
-      amount: expenseValue.amount,
+      amount: +expenseValue.amount.replace(/,/g, ""),
       date: expenseValue.date,
-      createdAt: new Date(),
-      // id: doc.data(),
+      createdAt: serverTimestamp(),
     });
-    const docu = await getDoc(expenseDoc);
-    console.log(docu.data().amount);
-    setBalance(parseInt(balance) - parseInt(docu.data().amount));
-    await setDoc(doc(db, "users", user.uid, "account-balance", "balance-doc"), {
-      balance: parseInt(balance) - parseInt(docu.data().amount),
-    });
+    //update UI
+    console.log(+expenseValue.amount.replace(/,/g, ""));
+    console.log(expenseValue.amount);
+    await updateDoc(
+      doc(db, "users", user.uid, "account-balance", "balance-doc"),
+      {
+        balance: balance - +expenseValue.amount.replace(/,/g, ""),
+        date: serverTimestamp(),
+      }
+    );
+    getBalance();
   };
 
   return (
     <form
-      className="flex flex-col justify-around items-center text"
+      className="grid grid-cols-2 text shadow-lg p-4 rounded text-right gap-2 bg-stone-100 mt-1"
       onSubmit={(e) => {
         e.preventDefault();
         if (
@@ -63,65 +57,82 @@ const ExpenseForm = ({
           expenseValue.amount &&
           expenseValue.date
         ) {
-          onAuthStateChanged(auth, (user) => {
-            if (user) {
-              addExpenseToDatabase(); // add single expense to database
-              updateExpenseHistory(user); //updateExpensehistory() -to updateUI of expense history
-              deductExpenseToBalance(user); //authbalance - to update deducted balance
-            }
-          });
+          // onAuthStateChanged(auth, (user) => {
+          //   if (user) {
+          addExpenseToDatabase(); // add single expense to database
+          updateExpenseHistory(); //updateExpensehistory() -to updateUI of expense history
+          // deductExpenseToBalance(user); //authbalance - to update deducted balance
           // setExpenseValue({
           //   description: (expenseValue.description = ""),
           //   amount: (expenseValue.amount = ""),
           //   date: (expenseValue.date = ""),
           // });
+          //   }
+          // });
+          //
         } else return;
       }}
     >
-      <label htmlFor="description" className="w-full">
-        Description
-      </label>
+      <div className="w-fit bg-white flex flext-start items-center rounded-md col-span-2 ">
+        <label
+          htmlFor="date"
+          className="hover:cursor-pointer hover:text-red-800"
+        >
+          <span className="material-symbols-outlined">calendar_month</span>
+        </label>
+        <input
+          onChange={(e) => {
+            setExpenseValue({ ...expenseValue, date: e.target.value });
+          }}
+          className="w-fit border-none focus:outline-none h-full shadow-none rounded-md focus:ring-0"
+          type="date"
+          name="date"
+          id="date"
+          value={expenseValue.date}
+          placeholder="Select Date"
+        />
+      </div>
       <input
         onChange={(e) => {
           setExpenseValue({ ...expenseValue, description: e.target.value });
         }}
-        className="input-field"
+        className="input-field w-full"
         type="text"
         name="description"
         value={expenseValue.description}
+        placeholder="Description"
       />
-      <label htmlFor="Amount" className="w-full">
-        Amount
-      </label>
+
       <input
         onChange={(e) => {
-          setExpenseValue({ ...expenseValue, amount: e.target.value });
-        }}
-        onKeyPress={(e) => {
-          if (!parseInt(e.key)) {
-            e.preventDefault();
+          const value = e.target.value;
+          const clean = value.replace(/,/g, "");
+          const regex = /^[0-9]*\.?[0-9]*$/;
+
+          if (value && clean.match(regex)) {
+            if (!value.includes(".")) {
+              const formatted = new Intl.NumberFormat().format(
+                parseFloat(clean)
+              );
+              setExpenseValue({ ...expenseValue, amount: formatted });
+            } else {
+              setExpenseValue({ ...expenseValue, amount: value });
+            }
+          } else {
+            setExpenseValue({ ...expenseValue, amount: "" });
           }
         }}
-        className="input-field py-2"
-        type="number"
+        className="input-field py-2 border-none w-full"
+        type="text"
         name="Amount"
-        min="0"
-        step="1"
         value={expenseValue.amount}
+        placeholder="Amount"
       />
-      <label htmlFor="date" className="w-full">
-        Date
-      </label>
-      <input
-        onChange={(e) => {
-          setExpenseValue({ ...expenseValue, date: e.target.value });
-        }}
-        className="input-field py-2"
-        type="date"
-        name="date"
-        value={expenseValue.date}
-      />
-      <button className="btn" type="submit">
+
+      <button
+        className="bg-rose-700 col-span-2 w-[200px] m-auto text-white text-sm p-1 rounded"
+        type="submit"
+      >
         Add
       </button>
     </form>

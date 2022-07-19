@@ -2,154 +2,157 @@ import AccountBalance from "./AccountBalance";
 import ExpenseForm from "./ExpenseForm";
 import ExpenseHistory from "./ExpenseHistory";
 import Nav from "./Nav";
-import { db } from "../config/firebase_config";
+import { auth, db } from "../config/firebase_config";
 import {
   collection,
-  getDocs,
   doc,
-  updateDoc,
-  setDoc,
-  addDoc,
   query,
-  where,
-  getDoc,
   onSnapshot,
+  orderBy,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { usersRef } from "../config/firebase_config";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { Route, Routes, useNavigate } from "react-router-dom";
 import Deposit from "./Deposit";
+import Withdraw from "./Withdraw";
+import Header from "./Header";
+import Transfer from "./Transfer";
+import EditExpense from "./EditExpense";
+import { useAuthUser } from "./context/AuthUserContextProvider";
+import Account from "./Account";
 
-const Dashboard = () => {
+const Dashboard = ({ setIsAuth }) => {
   const [expenseItem, setExpenseItem] = useState([]);
-  const auth = getAuth();
-  // const user = auth.currentUser;
+  const [balance, setBalance] = useState(0);
+  const [alert, setAlert] = useState("");
+  const [isAlert, setIsAlert] = useState(false);
+  const { user } = useAuthUser();
+  const navigate = useNavigate();
+  useEffect(() => {
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        updateExpenseHistory();
+        getBalance();
+      }
+    });
+  }, [auth]);
+
   const getBalance = () => {
     onAuthStateChanged(auth, (user) => {
       if (user) {
         onSnapshot(
           doc(db, "users", user.uid, "account-balance", "balance-doc"),
           (doc) => {
-            console.log(doc.data().balance);
-            setBalance(doc.data().balance);
+            setBalance(doc?.data().balance);
           }
         );
       }
     });
   };
-  const [balance, setBalance] = useState(0);
-
-  useEffect(() => {
-    onAuthStateChanged(auth, (user) => {
-      // const user = auth.currentUser;
-      if (user) {
-        updateExpenseHistory(user);
-        getBalance(user);
-        // deductExpenseToBalance();
-        // deductExpenseOnAuthStateChange();
-      }
-    });
-  }, [auth]);
-
-  const updateExpenseHistory = async (user) => {
+  const convertToMoneyFormat = (num) => {
+    if (!num) return;
+    let p = num.toFixed(2).split(".");
+    return ` ${p[0].split("")[0] === "-" ? "-" : ""}${p[0]
+      .split("")
+      .reverse()
+      .reduce(function (acc, num, i) {
+        return num === "-" ? acc : num + (i && !(i % 3) ? "," : "") + acc;
+      }, "")}.${p[1]}`;
+  };
+  const updateExpenseHistory = () => {
     // const user = auth.currentUser;
 
-    const data = await getDocs(
-      collection(db, "users", user.uid, "expense-list")
+    const q = query(
+      collection(db, "users", user.uid, "expense-list"),
+      orderBy("date", "desc")
     );
-    setExpenseItem(data.docs.map((doc) => ({ ...doc.data(), id: doc.id })));
+
+    onSnapshot(q, (snapshot) =>
+      setExpenseItem(
+        snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }))
+      )
+    );
+    //
   };
 
-  // const deductExpenseToBalance = async (user) => {
-  //   //firestore
-
-  //   const data = await getDocs(
-  //     collection(db, "users", user.uid, "expense-list")
-  //   );
-  //   try {
-  //     if (data.docs) {
-  //       let expenseItems = data.docs.map((doc) => ({
-  //         ...doc.data(),
-  //         key: doc.id,
-  //       }));
-  //       console.log(expenseItems);
-  //       let amountArray = expenseItems.map((item) => {
-  //         return parseInt(item.amount);
-  //       });
-
-  //       //UI
-  //       setBalance(
-  //         (balance) =>
-  //           balance - amountArray.reduce((total, item) => total + item)
-  //       );
-  //       //Firestore
-  //       await updateDoc(
-  //         doc(db, "users", user.uid, "account-balance", "balance-doc"),
-  //         {
-  //           balance:
-  //             balance - amountArray.reduce((total, item) => total + item),
-  //         },
-  //         { merge: true }
-  //       );
-  //     } else return;
-  //   } catch (err) {
-  //     console.log(err.message);
-  //   }
-  // };
-
-  //update balance in firestore
-
-  // const deductExpenseOnAuthStateChange = () => {
-  //   onAuthStateChanged(auth, (user) => {
-  //     if (user) {
-  //       deductExpenseToBalance();
-  //       updateExpenseHistory();
-  //     }
-  //   });
-  // };
-  const deductExpenseToBalance = async (user) => {
-    //firestore
-    // const q = query(collection(db, "users",user.uid, "expense-list"), where("capital", "==", true));
-
-    // const data = await getDocs(
-    //   collection(db, "users", user.uid, "expense-list")
-    // );
-    // const expenseDoc = doc(collection(db, "users", user.uid, "expense-list"));
-    // const docId = expenseDoc.id;
-    console.log("hello");
-    // const document = await getDoc(
-    //   doc(db, "users", user.uid, "expense-list", docId)
-    // );
-    // console.log(document);
-    // setBalance(parseInt(balance) - parseInt(document.amount));
-  };
   return (
-    <div className="grid gap-2 grid-cols-[1fr,2fr] grid-rows-[1fr,1fr,3fr] h-5/6 w-11/12 ">
-      <h1 className="text-xl font-bold">Mayon Bank{balance}</h1>
-      <AccountBalance
-        balance={balance}
-        // deductExpenseToBalance={deductExpenseToBalance}
-        getBalance={getBalance}
-        updateExpenseHistory={updateExpenseHistory}
-      />
+    <div className="grid gap-2 grid-cols-[1fr,5fr] h-screen 5/6 w-screen mt-32 bg-stone-300 overflow-hidden">
+      <Header setIsAuth={setIsAuth} />
       <Nav />
-      <ExpenseHistory
-        expenseItem={expenseItem}
-        updateExpenseHistory={updateExpenseHistory}
-      />
-      <div className="modal-form md:w-full border border-black rounded h-full w-full p-4">
-        <h1 className="p-2">Add new Expense</h1>
-        <ExpenseForm
-          // deductExpenseToBalance={deductExpenseToBalance}
-          updateExpenseHistory={updateExpenseHistory}
-          balance={balance}
-          setBalance={setBalance}
-        />
+
+      <div className="w-full shadow-sm rounded h-full p-6">
         <Routes>
           <Route
+            path="/account"
+            element={
+              <Account
+                expenseItem={expenseItem}
+                updateExpenseHistory={updateExpenseHistory}
+                balance={balance}
+                setBalance={setBalance}
+                getBalance={getBalance}
+                convertToMoneyFormat={convertToMoneyFormat}
+              />
+            }
+          />
+          <Route
+            path="/expenseHistory"
+            element={
+              <ExpenseHistory
+                expenseItem={expenseItem}
+                updateExpenseHistory={updateExpenseHistory}
+                balance={balance}
+                setBalance={setBalance}
+                getBalance={getBalance}
+                convertToMoneyFormat={convertToMoneyFormat}
+              />
+            }
+          />
+          <Route
             path="/deposit"
-            element={<Deposit balance={balance} setBalance={setBalance} />}
+            element={
+              <Deposit
+                balance={balance}
+                setBalance={setBalance}
+                getBalance={getBalance}
+                convertToMoneyFormat={convertToMoneyFormat}
+                alert={alert}
+                setAlert={setAlert}
+                isAlert={isAlert}
+                setIsAlert={setIsAlert}
+              />
+            }
+          />
+          <Route
+            path="/withdraw"
+            element={
+              <Withdraw
+                getBalance={getBalance}
+                balance={balance}
+                setBalance={setBalance}
+                convertToMoneyFormat={convertToMoneyFormat}
+                alert={alert}
+                setAlert={setAlert}
+                isAlert={isAlert}
+                setIsAlert={setIsAlert}
+              />
+            }
+          />
+          <Route
+            path="/transfer"
+            element={
+              <Transfer
+                getBalance={getBalance}
+                balance={balance}
+                setBalance={setBalance}
+                convertToMoneyFormat={convertToMoneyFormat}
+                alert={alert}
+                setAlert={setAlert}
+                isAlert={isAlert}
+                setIsAlert={setIsAlert}
+              />
+            }
           />
           {/* <Route path="*" element={<NoMatch />} /> */}
         </Routes>

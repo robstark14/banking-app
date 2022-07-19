@@ -1,75 +1,109 @@
 import { getAuth } from "firebase/auth";
-import { setDoc, doc, collection, addDoc, updateDoc } from "firebase/firestore";
+import {
+  setDoc,
+  doc,
+  collection,
+  addDoc,
+  updateDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../config/firebase_config";
+import AccountBalance from "./AccountBalance";
+import { useAuthUser } from "./context/AuthUserContextProvider";
 
-const Deposit = ({ setBalance, balance }) => {
+const Deposit = ({
+  balance,
+  getBalance,
+  updateExpenseHistory,
+  convertToMoneyFormat,
+}) => {
   const [deposit, setDeposit] = useState("");
   const navigate = useNavigate();
-
+  const { user } = useAuthUser();
   const storeDeposit = async () => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-    console.log(collection(db, "users", user.uid, "deposit"));
-
-    await addDoc(collection(db, "users", user.uid, "deposit"), {
-      depositAmount: deposit,
-      depositDate: new Date(),
-    });
-    await updateDoc(
-      doc(db, "users", user.uid, "account-balance", "balance-doc"),
-      {
-        balance: parseInt(balance) + parseInt(deposit),
-        updatedAt: new Date(),
-      }
-    );
-    setBalance(parseInt(balance) + parseInt(deposit));
+    try {
+      await addDoc(collection(db, "users", user.uid, "transactions"), {
+        transaction: "Deposit",
+        depositAmount: +deposit.replace(/,/g, ""),
+        date: serverTimestamp(),
+      });
+      await updateDoc(
+        doc(db, "users", user.uid, "account-balance", "balance-doc"),
+        {
+          balance: balance + +deposit.replace(/,/g, ""),
+          date: serverTimestamp(),
+        }
+      );
+    } catch (err) {
+      console.log(err.message);
+    }
+    getBalance();
   };
   return (
-    <div className="modal-form md:w-1/2 md:h-max absolute top-1/3 before:bg-black-100">
-      <h1>Enter amount of your account deposit</h1>
-      <label htmlFor="Amount" className="w-full">
-        Amount
-      </label>
+    <div className="md:w-full md:h-full">
+      <AccountBalance
+        balance={balance}
+        getBalance={getBalance}
+        updateExpenseHistory={updateExpenseHistory}
+        convertToMoneyFormat={convertToMoneyFormat}
+      />
+
       <form
+        className="w-[360px] h-[220px] m-auto bg-stone-100 rounded grid items-center justify-center mt-4"
         onSubmit={(e) => {
           e.preventDefault();
           if (deposit) {
             storeDeposit();
-
-            console.log(parseInt(balance));
           }
         }}
       >
+        <h1 className="mb-4">Enter amount of your account deposit</h1>
         <input
           onChange={(e) => {
-            setDeposit(e.target.value);
-          }}
-          onKeyPress={(e) => {
-            if (!parseInt(e.key)) {
-              e.preventDefault();
+            // setExpenseValue({ ...expenseValue, amount: e.target.value });
+
+            const value = e.target.value;
+            const clean = value.replace(/,/g, "");
+            const regex = /^[0-9]*\.?[0-9]*$/;
+
+            if (value && clean.match(regex)) {
+              if (!value.includes(".")) {
+                const formatted = new Intl.NumberFormat().format(
+                  parseFloat(clean)
+                );
+                setDeposit(formatted);
+              } else {
+                setDeposit(value);
+              }
+            } else {
+              setDeposit("");
             }
           }}
           className="input-field py-2"
-          type="number"
+          type="text"
           name="Amount"
           min="0"
           step="1"
           value={deposit}
+          placeholder="PHP 0.00"
         />
-        <button className="btn" type="submit">
-          Deposit
-        </button>
-        <button
-          className="btn w-6"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate(-1);
-          }}
-        >
-          Close
-        </button>
+
+        <div className="flex justify-around items-center w-[320px]">
+          <button className="btn w-16" type="submit">
+            Deposit
+          </button>
+          <button
+            className="w-16 hover:text-red-700 hover:font-bold"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate("/dashboard");
+            }}
+          >
+            <small>x</small> Cancel
+          </button>
+        </div>
       </form>
     </div>
   );

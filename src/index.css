@@ -12,15 +12,27 @@ body {
   width: 100vw;
 }
 
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 48;
+}
 .input-field {
-  @apply p-2 my-1 w-full rounded focus:outline-none;
+  @apply p-2 my-1 w-[full] rounded focus:outline-none shadow-lg focus:ring-0 border-none;
 }
 .btn {
-  @apply hover:opacity-80 hover:cursor-pointer bg-rose-700 text-white tracking-wide rounded-2xl mt-4 w-1/2 m-auto;
+  @apply hover:opacity-80 hover:cursor-pointer bg-red-800 text-white tracking-wide rounded text-sm h-8 w-max px-2;
 }
 .modal-form {
-  @apply bg-gray-100 rounded-lg p-6 shadow-2xl h-2/3 w-11/12 mr-32 sm:w-1/2 sm:h-2/3 md:h-fit md:w-1/4 text-left;
+  @apply bg-gray-100 rounded-lg p-6 shadow-2xl h-max w-max md:mr-[100px] text-left;
 }
 .warning-input {
   @apply text-red-500 py-1 px-2 mb-1 text-sm w-full;
+}
+.icon-word {
+  @apply mr-4;
+}
+.hover-nav {
+  @apply hover:text-rose-500 hover:cursor-pointer;
+}
+.form-input-field {
+  @apply p-2 my-1 w-full rounded focus:outline-none border-none shadow-lg;
 }
